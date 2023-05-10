@@ -1,11 +1,11 @@
 {
-  "version": "1.2.0",
+  "version": "1.7.0",
   "name": "@tw/http-terminator",
   "types": "./module/index.d.ts",
   "main": "module/index.js",
   "dependencies": {
     "delay": "^5.0.0",
-    "p-wait-for": "^5.0.2",
+    "p-wait-for": "^3.2.0",
     "type-fest": "^3.10.0"
   },
   "description": "Gracefully terminates HTTP(S) server.",
@@ -14,9 +14,6 @@
     "@types/node": "^20.1.2",
     "express": "^4.18.2",
     "typescript": "^5.0.4"
-  },
-  "engines": {
-    "node": ">=14"
   },
   "scripts": {
     "dev": "tsc --watch --preserveWatchOutput",
