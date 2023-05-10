@@ -1,20 +1,8 @@
 {
-  "author": {
-    "email": "gajus@gajus.com",
-    "name": "Gajus Kuizinas",
-    "url": "http://gajus.com"
-  },
-  "ava": {
-    "extensions": [
-      "ts"
-    ],
-    "files": [
-      "test/http-terminator/**/*"
-    ],
-    "require": [
-      "ts-node/register/transpile-only"
-    ]
-  },
+  "version": "1.2.0",
+  "name": "@tw/http-terminator",
+  "types": "./module/index.d.ts",
+  "main": "module/index.js",
   "dependencies": {
     "delay": "^5.0.0",
     "p-wait-for": "^5.0.2",
@@ -30,28 +18,8 @@
   "engines": {
     "node": ">=14"
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run lint && npm run test && npm run build"
-    }
-  },
-  "keywords": [
-    "kubernetes",
-    "prometheus"
-  ],
-  "license": "BSD-3-Clause",
-  "main": "./dist/src/index.js",
-  "name": "@tw/http-terminator",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/gajus/http-terminator"
-  },
   "scripts": {
-    "build": "rm -fr ./dist && tsc",
-    "generate-readme": "gitdown ./.README/README.md --output-file ./README.md",
-    "lint": "eslint ./src ./test && tsc --noEmit",
-    "test": "NODE_ENV=test ava --serial --verbose"
-  },
-  "typings": "./dist/src/index.d.ts",
-  "version": "1.0.0"
+    "dev": "tsc --watch --preserveWatchOutput",
+    "build": "npm i && tsc"
+  }
 }
