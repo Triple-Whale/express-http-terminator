@@ -1,0 +1,11 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "git.ignoreSubmodules": true,
+  "prettier.singleQuote": true,
+  "prettier.printWidth": 100,
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "files.insertFinalNewline": true
+  }
+}
