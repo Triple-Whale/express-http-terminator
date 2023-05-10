@@ -1,28 +1,19 @@
 /* eslint-disable import/order */
 
-import http from 'http';
-import waitFor from 'p-wait-for';
-import type {
-  Duplex,
-} from 'stream';
-import {
-  Logger,
-} from '../Logger';
+import http from "http";
+import waitFor from "p-wait-for";
+import type { Duplex } from "stream";
 import type {
   HttpTerminatorConfigurationInput,
   InternalHttpTerminator,
-} from '../types';
-
-const log = Logger.child({
-  namespace: 'createHttpTerminator',
-});
+} from "../types";
 
 const configurationDefaults = {
   gracefulTerminationTimeout: 1_000,
 };
 
 export const createInternalHttpTerminator = (
-  configurationInput: HttpTerminatorConfigurationInput,
+  configurationInput: HttpTerminatorConfigurationInput
 ): InternalHttpTerminator => {
   const configuration = {
     ...configurationDefaults,
@@ -36,25 +27,25 @@ export const createInternalHttpTerminator = (
 
   let terminating;
 
-  server.on('connection', (socket) => {
+  server.on("connection", (socket: Duplex) => {
     if (terminating) {
       socket.destroy();
     } else {
       sockets.add(socket);
 
-      socket.once('close', () => {
+      socket.once("close", () => {
         sockets.delete(socket);
       });
     }
   });
 
-  server.on('secureConnection', (socket) => {
+  server.on("secureConnection", (socket) => {
     if (terminating) {
       socket.destroy();
     } else {
       secureSockets.add(socket);
 
-      socket.once('close', () => {
+      socket.once("close", () => {
         secureSockets.delete(socket);
       });
     }
@@ -77,7 +68,7 @@ export const createInternalHttpTerminator = (
 
   const terminate = async () => {
     if (terminating) {
-      log.warn('already terminating HTTP server');
+      console.log("already terminating HTTP server");
 
       return terminating;
     }
@@ -90,9 +81,9 @@ export const createInternalHttpTerminator = (
       rejectTerminating = reject;
     });
 
-    server.on('request', (incomingMessage, outgoingMessage) => {
+    server.on("request", (incomingMessage, outgoingMessage) => {
       if (!outgoingMessage.headersSent) {
-        outgoingMessage.setHeader('connection', 'close');
+        outgoingMessage.setHeader("connection", "close");
       }
     });
 
@@ -108,7 +99,7 @@ export const createInternalHttpTerminator = (
 
       if (serverResponse) {
         if (!serverResponse.headersSent) {
-          serverResponse.setHeader('connection', 'close');
+          serverResponse.setHeader("connection", "close");
         }
 
         continue;
@@ -123,7 +114,7 @@ export const createInternalHttpTerminator = (
 
       if (serverResponse) {
         if (!serverResponse.headersSent) {
-          serverResponse.setHeader('connection', 'close');
+          serverResponse.setHeader("connection", "close");
         }
 
         continue;
@@ -135,12 +126,15 @@ export const createInternalHttpTerminator = (
     // Wait for all in-flight connections to drain, forcefully terminating any
     // open connections after the given timeout
     try {
-      await waitFor(() => {
-        return sockets.size === 0 && secureSockets.size === 0;
-      }, {
-        interval: 10,
-        timeout: configuration.gracefulTerminationTimeout,
-      });
+      await waitFor(
+        () => {
+          return sockets.size === 0 && secureSockets.size === 0;
+        },
+        {
+          interval: 10,
+          timeout: configuration.gracefulTerminationTimeout,
+        }
+      );
     } catch {
       // Ignore timeout errors
     } finally {
