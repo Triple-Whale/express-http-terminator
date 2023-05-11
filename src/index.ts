@@ -57,7 +57,7 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig) {
       }
     }
 
-    server.closeAllConnections();
+    server.closeIdleConnections();
     server.close((error) => {
       if (error) {
         rejectTerminating(error);
