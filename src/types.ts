@@ -1,5 +1,6 @@
-import { Express, Response } from 'express';
+import { Express } from 'express';
 import { Server } from 'http';
+import { Socket } from 'net';
 
 export type HttpTerminatorConfig = {
   gracefulTerminationTimeout?: number;
@@ -9,5 +10,5 @@ export type HttpTerminatorConfig = {
 
 export type HttpTerminator = {
   terminate: () => Promise<void>;
-  responses: Set<Response>;
+  sockets: Set<Socket>;
 };

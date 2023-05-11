@@ -1,28 +1,30 @@
 import waitFor from 'p-wait-for';
 import type { HttpTerminator, HttpTerminatorConfig } from './types';
-import { NextFunction, Request, Response } from 'express';
+import { Socket } from 'net';
 
 export function createHttpTerminator(configurationInput: HttpTerminatorConfig): HttpTerminator {
-  const { app, gracefulTerminationTimeout, server } = configurationInput;
+  const { gracefulTerminationTimeout, server } = configurationInput;
 
-  const responses = new Set<Response>();
+  const sockets = new Set<Socket>();
 
   let terminating: Promise<void> | undefined;
 
-  function trackActive(req: Request, res: Response, next: NextFunction) {
-    responses.add(res);
-    res.once('close', () => {
-      responses.delete(res);
-    });
-    res.req.once('close', () => {
-      responses.delete(res);
-    });
+  server.on('connection', (socket) => {
     if (terminating) {
-      res.setHeader('connection', 'close');
+      socket.destroy();
+    } else {
+      sockets.add(socket);
+
+      socket.once('close', () => {
+        sockets.delete(socket);
+      });
     }
-    next();
+  });
+
+  function destroySocket(socket: Socket) {
+    socket.destroy();
+    sockets.delete(socket);
   }
-  app.use(trackActive);
 
   async function terminate() {
     process.env.TW_TERMINATING = 'true';
@@ -39,10 +41,30 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig): 
       rejectTerminating = reject;
     });
 
+    server.on('request', (incomingMessage, outgoingMessage) => {
+      if (!outgoingMessage.headersSent) {
+        outgoingMessage.setHeader('connection', 'close');
+      }
+    });
+
+    for (const socket of sockets) {
+      // @ts-expect-error Unclear if I am using wrong type or how else this should be handled.
+      const serverResponse = socket._httpMessage;
+
+      if (serverResponse) {
+        if (!serverResponse.headersSent) {
+          serverResponse.setHeader('connection', 'close');
+        }
+
+        continue;
+      }
+      destroySocket(socket);
+    }
+
     try {
       await waitFor(
         () => {
-          return responses.size === 0;
+          return sockets.size === 0;
         },
         {
           interval: 10,
@@ -52,8 +74,8 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig): 
     } catch (error) {
       console.error('httpTerminator', error);
     } finally {
-      for (const res of responses) {
-        res.socket?.destroy();
+      for (const socket of sockets) {
+        destroySocket(socket);
       }
     }
 
@@ -69,7 +91,7 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig): 
   }
 
   return {
-    responses,
+    sockets,
     terminate,
   };
 }
