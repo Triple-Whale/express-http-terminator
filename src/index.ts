@@ -2,18 +2,20 @@ import waitFor from 'p-wait-for';
 import type { HttpTerminatorConfig } from './types';
 import { NextFunction, Request, Response } from 'express';
 
-export function createInternalHttpTerminator(configurationInput: HttpTerminatorConfig) {
+export function createHttpTerminator(configurationInput: HttpTerminatorConfig) {
   const { app, gracefulTerminationTimeout, server } = configurationInput;
 
-  const requests = new Set<Request>();
+  const responses = new Set<Response>();
 
   let terminating: Promise<void> | undefined;
 
   function trackActive(req: Request, res: Response, next: NextFunction) {
-    requests.add(req);
-
-    req.once('close', () => {
-      requests.delete(req);
+    responses.add(res);
+    res.once('close', () => {
+      responses.delete(res);
+    });
+    res.req.once('close', () => {
+      responses.delete(res);
     });
     if (terminating) {
       res.setHeader('connection', 'close');
@@ -23,9 +25,9 @@ export function createInternalHttpTerminator(configurationInput: HttpTerminatorC
   app.use(trackActive);
 
   async function terminate() {
+    process.env.TW_TERMINATING = 'true';
     if (terminating) {
-      console.log('already terminating HTTP server');
-
+      console.warn('already terminating HTTP server');
       return terminating;
     }
 
@@ -40,21 +42,22 @@ export function createInternalHttpTerminator(configurationInput: HttpTerminatorC
     try {
       await waitFor(
         () => {
-          return requests.size === 0;
+          return responses.size === 0;
         },
         {
           interval: 10,
           timeout: gracefulTerminationTimeout,
         }
       );
-    } catch {
-      // Ignore timeout errors
+    } catch (error) {
+      console.error('httpTerminator', error);
     } finally {
-      for (const res of requests) {
+      for (const res of responses) {
         res.socket?.destroy();
       }
     }
 
+    server.closeAllConnections();
     server.close((error) => {
       if (error) {
         rejectTerminating(error);
@@ -67,7 +70,7 @@ export function createInternalHttpTerminator(configurationInput: HttpTerminatorC
   }
 
   return {
-    requests,
+    responses,
     terminate,
   };
 }
