@@ -1,8 +1,8 @@
 import waitFor from 'p-wait-for';
-import type { HttpTerminatorConfig } from './types';
+import type { HttpTerminator, HttpTerminatorConfig } from './types';
 import { NextFunction, Request, Response } from 'express';
 
-export function createHttpTerminator(configurationInput: HttpTerminatorConfig) {
+export function createHttpTerminator(configurationInput: HttpTerminatorConfig): HttpTerminator {
   const { app, gracefulTerminationTimeout, server } = configurationInput;
 
   const responses = new Set<Response>();
@@ -57,7 +57,6 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig) {
       }
     }
 
-    server.closeIdleConnections();
     server.close((error) => {
       if (error) {
         rejectTerminating(error);

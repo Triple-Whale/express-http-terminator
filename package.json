@@ -1,5 +1,5 @@
 {
-  "version": "1.9.3",
+  "version": "1.9.8",
   "name": "@tw/http-terminator",
   "types": "./module/index.d.ts",
   "main": "module/index.js",
