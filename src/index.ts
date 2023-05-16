@@ -14,17 +14,11 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig): 
       socket.destroy();
     } else {
       sockets.add(socket);
-
       socket.once('close', () => {
         sockets.delete(socket);
       });
     }
   });
-
-  function destroySocket(socket: Socket) {
-    socket.destroy();
-    sockets.delete(socket);
-  }
 
   async function terminate() {
     process.env.TW_TERMINATING = 'true';
@@ -41,24 +35,38 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig): 
       rejectTerminating = reject;
     });
 
-    server.on('request', (incomingMessage, outgoingMessage) => {
+    server.on('request', (_incomingMessage, outgoingMessage) => {
       if (!outgoingMessage.headersSent) {
         outgoingMessage.setHeader('connection', 'close');
       }
+      const socket = outgoingMessage.socket;
+      // wait for the response to finish before closing the server
+      // not sure abt this
+      sockets.add(socket);
     });
 
     for (const socket of sockets) {
-      // @ts-expect-error Unclear if I am using wrong type or how else this should be handled.
+      if (socket.destroyed) {
+        sockets.delete(socket);
+        continue;
+      }
+
+      // @ts-ignore
       const serverResponse = socket._httpMessage;
 
       if (serverResponse) {
         if (!serverResponse.headersSent) {
           serverResponse.setHeader('connection', 'close');
         }
-
         continue;
       }
-      destroySocket(socket);
+
+      // no _httpMessage means keep-alive socket with no active request
+      // I decide to not destroy it, but also not keep the server from draining.
+      // later we call closeIdleConnections which will take care of destroying it.
+      // hopefully this will result in less socket hang ups, as new connections coming in will get
+      // the connection: close header set.
+      sockets.delete(socket);
     }
 
     try {
@@ -72,13 +80,12 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig): 
         }
       );
     } catch (error) {
-      console.error('httpTerminator', error);
-    } finally {
       for (const socket of sockets) {
-        destroySocket(socket);
+        socket.destroy();
       }
     }
 
+    server.closeIdleConnections();
     server.close((error) => {
       if (error) {
         rejectTerminating(error);
