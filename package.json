@@ -5,8 +5,7 @@
   "main": "module/index.js",
   "dependencies": {
     "delay": "^5.0.0",
-    "p-wait-for": "^3.2.0",
-    "type-fest": "^3.10.0"
+    "p-wait-for": "^3.2.0"
   },
   "description": "Gracefully terminates HTTP(S) server.",
   "devDependencies": {
