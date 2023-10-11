@@ -15,12 +15,16 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig): 
     } else {
       sockets.add(socket);
       socket.once('close', () => {
-        sockets.delete(socket);
+        // sleep 5 seconds before removing the socket
+        // to allow queued requests to enter (knative)
+        setTimeout(() => {
+          sockets.delete(socket);
+        }, 5000);
       });
     }
   });
 
-  async function terminate() {
+  async function terminate(): Promise<void> {
     process.env.TW_TERMINATING = 'true';
     if (terminating) {
       console.warn('already terminating HTTP server');
