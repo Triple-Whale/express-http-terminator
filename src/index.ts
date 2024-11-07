@@ -10,14 +10,14 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig): 
   let terminating: Promise<void> | undefined;
 
   server.on('connection', (socket) => {
+    socket.once('close', () => {
+      sockets.delete(socket);
+    });
     if (terminating) {
       socket.destroy();
     } else {
       sockets.add(socket);
     }
-    socket.once('close', () => {
-      sockets.delete(socket);
-    });
   });
 
   async function terminate(): Promise<void> {
@@ -43,6 +43,9 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig): 
       // wait for the response to finish before closing the server
       // not sure abt this
       sockets.add(socket);
+      outgoingMessage.on('finish', () => {
+        sockets.delete(socket);
+      });
     });
 
     for (const socket of sockets) {
