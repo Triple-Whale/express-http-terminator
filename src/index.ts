@@ -14,14 +14,10 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig): 
       socket.destroy();
     } else {
       sockets.add(socket);
-      socket.once('close', () => {
-        // sleep 5 seconds before removing the socket
-        // to allow queued requests to enter (knative)
-        setTimeout(() => {
-          sockets.delete(socket);
-        }, 5000);
-      });
     }
+    socket.once('close', () => {
+      sockets.delete(socket);
+    });
   });
 
   async function terminate(): Promise<void> {
@@ -81,7 +77,7 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig): 
         {
           interval: 10,
           timeout: gracefulTerminationTimeout,
-        }
+        },
       );
     } catch (error) {
       for (const socket of sockets) {
