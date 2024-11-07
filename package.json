@@ -1,12 +1,8 @@
 {
-  "version": "2.0.9",
+  "version": "2.1.0",
   "name": "@tw/http-terminator",
   "types": "./module/index.d.ts",
   "main": "module/index.js",
-  "dependencies": {
-    "delay": "^6.0.0",
-    "p-wait-for": "^5.0.2"
-  },
   "description": "Gracefully terminates HTTP(S) server.",
   "devDependencies": {
     "@types/node": "^22.9.0",

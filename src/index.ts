@@ -1,4 +1,3 @@
-import waitFor from 'p-wait-for';
 import type { HttpTerminator, HttpTerminatorConfig } from './types';
 import { Socket } from 'net';
 
@@ -73,15 +72,21 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig): 
     }
 
     try {
-      await waitFor(
-        () => {
-          return sockets.size === 0;
-        },
-        {
-          interval: 10,
-          timeout: gracefulTerminationTimeout,
-        },
-      );
+      // wait for sockets.length to reach 0, with timeout, and check again every 20 ms
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          clearInterval(interval);
+          reject(new Error('timeout'));
+        }, gracefulTerminationTimeout);
+
+        const interval = setInterval(() => {
+          if (sockets.size === 0) {
+            clearInterval(interval);
+            clearTimeout(timeout);
+            resolve();
+          }
+        }, 20);
+      });
     } catch (error) {
       for (const socket of sockets) {
         socket.destroy();
