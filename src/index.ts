@@ -13,7 +13,7 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig): 
       sockets.delete(socket);
     });
     if (terminating) {
-      socket.destroy();
+      socket.end();
     } else {
       sockets.add(socket);
     }
@@ -40,10 +40,8 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig): 
       }
       const socket = outgoingMessage.socket;
       // wait for the response to finish before closing the server
-      // not sure abt this
-      sockets.add(socket);
       outgoingMessage.on('finish', () => {
-        sockets.delete(socket);
+        socket.end();
       });
     });
 
@@ -64,11 +62,7 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig): 
       }
 
       // no _httpMessage means keep-alive socket with no active request
-      // I decide to not destroy it, but also not keep the server from draining.
-      // later we call closeIdleConnections which will take care of destroying it.
-      // hopefully this will result in less socket hang ups, as new connections coming in will get
-      // the connection: close header set.
-      sockets.delete(socket);
+      socket.end();
     }
 
     try {
@@ -89,7 +83,7 @@ export function createHttpTerminator(configurationInput: HttpTerminatorConfig): 
       });
     } catch (error) {
       for (const socket of sockets) {
-        socket.destroy();
+        socket.end();
       }
     }
 
